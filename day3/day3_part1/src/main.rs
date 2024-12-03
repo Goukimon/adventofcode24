@@ -31,7 +31,6 @@ fn main() {
     let re_numbers = Regex::new(r"[0-9]{1,3}").unwrap();
 
     let mut all_matches: Vec<&str> = Vec::new();
-    //let mut numbers: Vec<i32> = Vec::new();
     let mut end_value: i32 = 0;
 
     for line in data.lines() {
