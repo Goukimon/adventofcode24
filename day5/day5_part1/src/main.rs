@@ -150,7 +150,7 @@ fn main() {
     let data = get_data();
 
     let mut rules_lines : Vec<&str> = Vec::new();
-    let mut updates_lines : Vec<_> = Vec::new();
+    let mut updates_lines : Vec<&str> = Vec::new();
     let unique_values : Vec<&str>;
     let reference_table : Vec<(&str,Vec<&str>,Vec<&str>,Vec<&str>)>;
     let sorted_values : Vec<&str>;
