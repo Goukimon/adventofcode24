@@ -27,6 +27,19 @@ fn get_all_unique_values<'a>(rules_lines : &'a Vec<&'a str>) -> Vec<&'a str>{
     return unique_values;
 }
 
+fn get_all_unique_values_from_an_update<'a>(update : &'a str) -> Vec<&'a str>{
+    let mut unique_values : Vec<&str> = Vec::new();
+    
+    let split_update = update.split(',').collect::<Vec<&str>>();
+    for value in split_update{
+        if !unique_values.contains(&value){
+            unique_values.push(&value);
+        }
+    }
+
+    return unique_values;
+}
+
 fn fill_reference_table<'a>(unique_values : &'a Vec<&'a str>, rules_lines : &'a Vec<&'a str>) -> Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,Vec<&'a str>)>{
     let mut bigger : Vec<&str> = Vec::new();
     let mut smaller : Vec<&str> = Vec::new();
@@ -52,11 +65,14 @@ fn fill_reference_table<'a>(unique_values : &'a Vec<&'a str>, rules_lines : &'a 
                 unrelated.push(&split_rule[0]);
             }
         }
-        for number in unrelated.clone(){
-            if bigger.contains(&number) || smaller.contains(&number){
-                unrelated.retain(|x| **x!=*number);
+        if smaller.len() + bigger.len() + 1 != unique_values.len(){
+            for number in unrelated.clone(){
+                if bigger.contains(&number) || smaller.contains(&number){
+                    unrelated.retain(|x| **x!=*number);
+                }
             }
         }
+
         reference_table.push((value,smaller.clone(),bigger.clone(),unrelated.clone()));
     }
 
@@ -77,7 +93,6 @@ fn test_reference_table(reference_table : &Vec<(&str,Vec<&str>,Vec<&str>,Vec<&st
             }
         }
     }
-    println!("Reference table is correct.");
 }
 
 fn sort_values<'a>(reference_table : &'a Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,Vec<&'a str>)>) -> Vec<&'a str>{
@@ -107,28 +122,52 @@ fn sort_values<'a>(reference_table : &'a Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,
 fn test_sorted_values(sorted_values : &Vec<&str>,rules_lines : &Vec<&str>){
     for rule in rules_lines{
         let split_rule = rule.split('|').collect::<Vec<&str>>();
-        println!("Testing rule : {}",rule);
-        assert!(sorted_values.iter().position(|&x| x==split_rule[0]).expect("Oh no") < sorted_values.iter().position(|&x| x==split_rule[1]).expect("Oh no"),"CONSTRAINT NOT RESPECTED.");
+        if sorted_values.contains(&split_rule[0]) && sorted_values.contains(&split_rule[1]){
+            assert!(sorted_values.iter().position(|&x| x==split_rule[0]).expect("Oh no") < sorted_values.iter().position(|&x| x==split_rule[1]).expect("Oh no"),"CONSTRAINT NOT RESPECTED.");
+        }   
     }
-    println!("Sorted values respect all constraints.");
 }
 
-fn get_all_correct_updates<'a>(sorted_values : &'a Vec<&'a str>,updates_lines : &Vec<&'a str>) -> Vec<&'a str>{
-    let mut correct_updates : Vec<&str> = Vec::new();
-    for update in updates_lines {
-        let split_update = update.split(',').collect::<Vec<&str>>();
-        let mut sorted_values_copy_retain = sorted_values.clone();
+fn trim_reference_table<'a>(unique_values: &'a Vec<&'a str>, reference_table: &'a Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,Vec<&'a str>)>) -> Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,Vec<&'a str>)>{
+    let mut trimmed_reference_table : Vec<(&str,Vec<&str>,Vec<&str>,Vec<&str>)> = Vec::new();
 
-        for value in sorted_values {
-            if !split_update.contains(&value){
-                sorted_values_copy_retain.retain(|x| **x != **value);
+    for row in reference_table{
+        for value in unique_values{
+            if row.0 == *value{
+                trimmed_reference_table.push(row.clone());
             }
         }
-        
-        if split_update == sorted_values_copy_retain {
-            println!("A HIT !");
+    }
+
+    trimmed_reference_table
+}
+
+fn check_correct_update<'a>(sorted_values : &'a Vec<&'a str>,update : &'a str) -> bool{
+    let split_update = update.split(',').collect::<Vec<&str>>();
+    
+    if &split_update == sorted_values {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+fn get_correct_updates<'a>(rules_lines : &'a Vec<&'a str>,updates_lines : &'a Vec<&'a str>,reference_table : &'a Vec<(&'a str,Vec<&'a str>,Vec<&'a str>,Vec<&'a str>)>) -> Vec<&'a str>{
+    let mut correct_updates : Vec<&str> = Vec::new();
+    let mut unique_values : Vec<&str>;  
+    let mut trimmed_reference_table : Vec<(&str,Vec<&str>,Vec<&str>,Vec<&str>)>;
+    let mut sorted_values : Vec<&str>;
+
+    for update in updates_lines{
+        unique_values = get_all_unique_values_from_an_update(&update);
+        trimmed_reference_table = trim_reference_table(&unique_values,&reference_table);
+        sorted_values = sort_values(&trimmed_reference_table);
+
+        test_sorted_values(&sorted_values,&rules_lines);
+
+        if check_correct_update(&sorted_values,update){
             correct_updates.push(update);
-        }
+        }        
     }
 
     correct_updates
@@ -153,7 +192,7 @@ fn main() {
     let mut updates_lines : Vec<&str> = Vec::new();
     let unique_values : Vec<&str>;
     let reference_table : Vec<(&str,Vec<&str>,Vec<&str>,Vec<&str>)>;
-    let sorted_values : Vec<&str>;
+    let correct_updates : Vec<&str>;
 
     for line in data.lines() {
         if line.contains('|') {
@@ -164,21 +203,13 @@ fn main() {
         }
     }
 
-    println!("Number of rules : {}", rules_lines.len());
-    println!("Number of updates : {}", updates_lines.len());
-
     unique_values = get_all_unique_values(&rules_lines);
-
-    println!("Number of unique values : {}", unique_values.len());
-    println!("Unique values : {:?}", unique_values);
 
     reference_table = fill_reference_table(&unique_values,&rules_lines);
     test_reference_table(&reference_table,&rules_lines);
 
-    sorted_values = sort_values(&reference_table);
-    println!("Sorted values : {:?}",sorted_values);
-    test_sorted_values(&sorted_values,&rules_lines);
+    correct_updates = get_correct_updates(&rules_lines,&updates_lines,&reference_table);
 
-    println!("Sum of correct middle pages : {}", get_final_answer(get_all_correct_updates(&sorted_values,&updates_lines)));
+    println!("Sum of correct middle pages : {}", get_final_answer(correct_updates));
 }
 
