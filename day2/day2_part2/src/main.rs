@@ -57,7 +57,7 @@ fn main() {
     let mut report : Vec<usize> = Vec::new();
     let mut all_reports : Vec<Vec<usize>> = Vec::new();
     let sorted_reports : Vec<Vec<usize>>;
-    let safe_reports : Vec<Vec<usize>>;
+    let mut safe_reports : Vec<Vec<usize>>;
     let mut unsafe_reports : Vec<Vec<usize>>;
 
     for line in data.lines() {
@@ -82,6 +82,26 @@ fn main() {
     println!("Number of sorted reports : {}",sorted_reports.len());
     println!("Number of safe reports (PART 1 COMPLIANT) : {}",safe_reports.len());
     println!("Number of unsafe reports : {}", unsafe_reports.len());
+
+    for report in unsafe_reports{
+        let mut faulty_reports : Vec<Vec<usize>> = Vec::new();
+        let dampened_reports : Vec<Vec<usize>>;
+        
+        for i in 0..report.len(){
+            let mut report_copy = report.clone();
+            report_copy.remove(i);
+            faulty_reports.push(report_copy);
+        }
+
+       
+        dampened_reports = check_difference(&(check_ascending_descending(&faulty_reports).0)).0;
+
+        if dampened_reports.len() != 0 {
+            safe_reports.push(dampened_reports[0].clone());
+        }
+    }
+
+    println!("Number of safe reports after dampening : {}", safe_reports.len());
 
 }
 
